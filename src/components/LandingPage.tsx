@@ -691,17 +691,23 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                     />
                   </div>
                   
-                  {/* --- AÑADIR ESTO --- */}
+                  {/* --- WIDGET DE TURNSTILE --- */}
                   <div 
                     className="cf-turnstile" 
                     data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
                     data-theme="light"
                   ></div>
-                  {/* ------------------- */}
+                  {/* ------------------------- */}
 
                   {error && (
                     <div className="text-destructive text-sm">
                       {error}
+                    </div>
+                  )}
+                  {success && (
+                    <div className="text-green-600 text-sm flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4" />
+                      {success}
                     </div>
                   )}
                   <Button
@@ -799,13 +805,13 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                         </Select>
                       </div>
 
-                      {/* --- AÑADIR ESTO --- */}
+                      {/* --- WIDGET DE TURNSTILE --- */}
                       <div 
                         className="cf-turnstile" 
                         data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
                         data-theme="light"
                       ></div>
-                      {/* ------------------- */}
+                      {/* ------------------------- */}
 
                       {error && (
                         <div className="text-destructive text-sm">
@@ -935,13 +941,13 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                         )}
                       </div>
                       
-                      {/* --- AÑADIR ESTO --- */}
+                      {/* --- WIDGET DE TURNSTILE --- */}
                       <div 
                         className="cf-turnstile" 
                         data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
                         data-theme="light"
                       ></div>
-                      {/* ------------------- */}
+                      {/* ------------------------- */}
                       
                       {error && (
                         <div className="text-destructive text-sm">
