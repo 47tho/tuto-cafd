@@ -1,4 +1,4 @@
-[archivo: Plataforma de Tutorías Universitarias (3)/src/components/LandingPage.tsx]
+
 import React, { useState } from "react";
 import {
   BookOpen,
