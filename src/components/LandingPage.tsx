@@ -1,4 +1,4 @@
-
+[archivo: Plataforma de Tutorías Universitarias (3)/src/components/LandingPage.tsx]
 import React, { useState } from "react";
 import {
   BookOpen,
@@ -50,7 +50,6 @@ interface LandingPageProps {
   onLinkClick: (content: string) => void;
 }
 
-// --- AÑADIR ESTO ---
 // (Para que TypeScript reconozca el objeto `turnstile` global)
 declare global {
   interface Window {
@@ -59,7 +58,6 @@ declare global {
     };
   }
 }
-// --------------------
 
 export function LandingPage({ onLinkClick }: LandingPageProps) {
   const { signIn, signUp } = useAuth();
@@ -691,13 +689,13 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                     />
                   </div>
                   
-                  {/* --- WIDGET DE TURNSTILE --- */}
+                  {/* --- WIDGET DE TURNSTILE (CORREGIDO) --- */}
                   <div 
                     className="cf-turnstile" 
-                    data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
+                    data-sitekey="0x4AAAAAACA1n_LS4lQdqDbV"
                     data-theme="light"
                   ></div>
-                  {/* ------------------------- */}
+                  {/* ------------------------------------ */}
 
                   {error && (
                     <div className="text-destructive text-sm">
@@ -805,13 +803,13 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                         </Select>
                       </div>
 
-                      {/* --- WIDGET DE TURNSTILE --- */}
+                      {/* --- WIDGET DE TURNSTILE (CORREGIDO) --- */}
                       <div 
                         className="cf-turnstile" 
-                        data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
+                        data-sitekey="0x4AAAAAACA1n_LS4lQdqDbV"
                         data-theme="light"
                       ></div>
-                      {/* ------------------------- */}
+                      {/* ------------------------------------ */}
 
                       {error && (
                         <div className="text-destructive text-sm">
@@ -937,17 +935,17 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                           <p className="text-xs text-muted-foreground mt-1">
                             {selectedSubjects.length} materia(s)
                             seleccionada(s)
-                          </p>
+                          </D>
                         )}
                       </div>
                       
-                      {/* --- WIDGET DE TURNSTILE --- */}
+                      {/* --- WIDGET DE TURNSTILE (CORREGIDO) --- */}
                       <div 
                         className="cf-turnstile" 
-                        data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
+                        data-sitekey="0x4AAAAAACA1n_LS4lQdqDbV"
                         data-theme="light"
                       ></div>
-                      {/* ------------------------- */}
+                      {/* ------------------------------------ */}
                       
                       {error && (
                         <div className="text-destructive text-sm">
