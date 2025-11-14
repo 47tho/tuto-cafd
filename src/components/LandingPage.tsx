@@ -935,7 +935,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                           <p className="text-xs text-muted-foreground mt-1">
                             {selectedSubjects.length} materia(s)
                             seleccionada(s)
-                          </D>
+                          </p>
                         )}
                       </div>
                       
