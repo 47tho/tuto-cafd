@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   BookOpen,
   Search,
@@ -55,6 +55,8 @@ declare global {
   interface Window {
     turnstile?: {
       reset: (widgetId?: string) => void;
+      render: (element: HTMLElement | string, options: any) => string;
+      remove: (widgetId: string) => void;
     };
   }
 }
@@ -75,6 +77,106 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
   const [authView, setAuthView] = useState("signin");
   const [roleView, setRoleView] = useState("student");
 
+  // Refs para los widgets de Turnstile
+  const signinTurnstileRef = useRef<HTMLDivElement>(null);
+  const signupStudentTurnstileRef = useRef<HTMLDivElement>(null);
+  const signupTutorTurnstileRef = useRef<HTMLDivElement>(null);
+  const turnstileWidgetIds = useRef<{ signin?: string; student?: string; tutor?: string }>({});
+  
+  // Estados para los tokens de Turnstile
+  const [turnstileTokens, setTurnstileTokens] = useState<{ signin?: string; student?: string; tutor?: string }>({});
+
+  // Función para renderizar el widget de Turnstile
+  const renderTurnstile = (element: HTMLElement | null, key: 'signin' | 'student' | 'tutor') => {
+    if (!element || !window.turnstile) return;
+    
+    // Remover widget anterior si existe
+    const existingWidgetId = turnstileWidgetIds.current[key];
+    if (existingWidgetId) {
+      try {
+        window.turnstile.remove(existingWidgetId);
+      } catch (e) {
+        // Ignorar errores al remover
+      }
+    }
+
+    // Limpiar token anterior
+    setTurnstileTokens(prev => ({ ...prev, [key]: undefined }));
+
+    // Renderizar nuevo widget
+    try {
+      const widgetId = window.turnstile.render(element, {
+        sitekey: '0x4AAAAAACA1n_LS4lQdqDbV',
+        theme: 'light',
+        callback: (token: string) => {
+          // Token generado, guardarlo en el estado
+          setTurnstileTokens(prev => ({ ...prev, [key]: token }));
+        },
+        'error-callback': () => {
+          setError('Error en la verificación de seguridad. Por favor, intenta de nuevo.');
+          setTurnstileTokens(prev => ({ ...prev, [key]: undefined }));
+        },
+        'expired-callback': () => {
+          setError('La verificación de seguridad ha expirado. Por favor, intenta de nuevo.');
+          setTurnstileTokens(prev => ({ ...prev, [key]: undefined }));
+          if (window.turnstile && turnstileWidgetIds.current[key]) {
+            window.turnstile.reset(turnstileWidgetIds.current[key]!);
+          }
+        },
+      });
+      turnstileWidgetIds.current[key] = widgetId;
+    } catch (e) {
+      console.error('Error rendering Turnstile:', e);
+    }
+  };
+
+  // Inicializar Turnstile cuando el modal se abre o cambian los tabs
+  useEffect(() => {
+    if (!showAuthDialog) return;
+
+    let attemptCount = 0;
+    const maxAttempts = 50; // Máximo 5 segundos (50 * 100ms)
+    const timeouts: NodeJS.Timeout[] = [];
+
+    // Función para verificar y renderizar Turnstile
+    const checkAndRenderTurnstile = () => {
+      attemptCount++;
+      
+      if (!window.turnstile) {
+        if (attemptCount < maxAttempts) {
+          // Si Turnstile no está cargado, esperar un poco más
+          const timeout = setTimeout(checkAndRenderTurnstile, 100);
+          timeouts.push(timeout);
+        } else {
+          console.error('Turnstile script no se cargó después de varios intentos');
+          setError('Error al cargar la verificación de seguridad. Por favor, recarga la página.');
+        }
+        return;
+      }
+
+      // Esperar a que el DOM esté listo
+      const renderTimeout = setTimeout(() => {
+        if (authView === 'signin' && signinTurnstileRef.current) {
+          renderTurnstile(signinTurnstileRef.current, 'signin');
+        } else if (authView === 'signup' && roleView === 'student' && signupStudentTurnstileRef.current) {
+          renderTurnstile(signupStudentTurnstileRef.current, 'student');
+        } else if (authView === 'signup' && roleView === 'tutor' && signupTutorTurnstileRef.current) {
+          renderTurnstile(signupTutorTurnstileRef.current, 'tutor');
+        }
+      }, 100);
+      timeouts.push(renderTimeout);
+    };
+
+    // Iniciar verificación
+    const initialTimeout = setTimeout(checkAndRenderTurnstile, 100);
+    timeouts.push(initialTimeout);
+
+    return () => {
+      // Limpiar todos los timeouts
+      timeouts.forEach(timeout => clearTimeout(timeout));
+    };
+  }, [showAuthDialog, authView, roleView]);
+
   const handleSignIn = async (
     e: React.FormEvent<HTMLFormElement>,
   ) => {
@@ -86,22 +188,30 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    // --- AÑADIR ESTO ---
-    const turnstileToken = formData.get("cf-turnstile-response") as string;
-    // --------------------
+    // Verificar token de Turnstile
+    const turnstileToken = turnstileTokens.signin;
+    if (!turnstileToken) {
+      setError("Por favor, completa la verificación de seguridad.");
+      setLoading(false);
+      // Reiniciar el widget
+      if (window.turnstile && turnstileWidgetIds.current.signin) {
+        window.turnstile.reset(turnstileWidgetIds.current.signin);
+      }
+      return;
+    }
 
     try {
-      // --- MODIFICAR ESTO ---
       await signIn(email, password, turnstileToken);
-      // ----------------------
       setShowAuthDialog(false);
+      // Limpiar token después de éxito
+      setTurnstileTokens(prev => ({ ...prev, signin: undefined }));
     } catch (err: any) {
       setError(err.message);
-      // --- AÑADIR ESTO ---
-      if (window.turnstile) {
-        window.turnstile.reset();
+      // Limpiar token y reiniciar el widget en caso de error
+      setTurnstileTokens(prev => ({ ...prev, signin: undefined }));
+      if (window.turnstile && turnstileWidgetIds.current.signin) {
+        window.turnstile.reset(turnstileWidgetIds.current.signin);
       }
-      // -------------------
     } finally {
       setLoading(false);
     }
@@ -124,9 +234,18 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       role,
     };
 
-    // --- AÑADIR ESTO ---
-    const turnstileToken = formData.get("cf-turnstile-response") as string;
-    // --------------------
+    // Verificar token de Turnstile
+    const widgetKey = role === 'student' ? 'student' : 'tutor';
+    const turnstileToken = turnstileTokens[widgetKey];
+    if (!turnstileToken) {
+      setError("Por favor, completa la verificación de seguridad.");
+      setLoading(false);
+      // Reiniciar el widget correspondiente
+      if (window.turnstile && turnstileWidgetIds.current[widgetKey]) {
+        window.turnstile.reset(turnstileWidgetIds.current[widgetKey]!);
+      }
+      return;
+    }
 
     if (role === "student") {
       data.carrera =
@@ -137,33 +256,36 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     }
 
     try {
-      // --- MODIFICAR ESTO ---
       const result = await signUp(data, turnstileToken);
-      // ----------------------
 
       if (result.needsApproval) {
         setSuccess(
           "Tu solicitud ha sido enviada. Un administrador la revisará pronto.",
         );
+        // Limpiar token después de éxito
+        setTurnstileTokens(prev => ({ ...prev, [widgetKey]: undefined }));
         setTimeout(() => setShowAuthDialog(false), 3000);
       } else {
-        // --- MODIFICADO PARA ESTUDIANTES ---
         setSuccess(
           "¡Cuenta creada! Por favor, inicia sesión para continuar.",
         );
+        // Limpiar token
+        setTurnstileTokens(prev => ({ ...prev, [widgetKey]: undefined }));
         setAuthView("signin"); // Cambia al tab de inicio de sesión
-        if (window.turnstile) {
-          window.turnstile.reset(); // Resetea el captcha en el tab de signin
-        }
-        // -----------------------------------
+        // Reiniciar el widget de signin
+        setTimeout(() => {
+          if (signinTurnstileRef.current) {
+            renderTurnstile(signinTurnstileRef.current, 'signin');
+          }
+        }, 100);
       }
     } catch (err: any) {
       setError(err.message);
-      // --- AÑADIR ESTO ---
-      if (window.turnstile) {
-        window.turnstile.reset();
+      // Limpiar token y reiniciar el widget correspondiente en caso de error
+      setTurnstileTokens(prev => ({ ...prev, [widgetKey]: undefined }));
+      if (window.turnstile && turnstileWidgetIds.current[widgetKey]) {
+        window.turnstile.reset(turnstileWidgetIds.current[widgetKey]!);
       }
-      // -------------------
     } finally {
       setLoading(false);
     }
@@ -617,6 +739,18 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
             // Reset tabs al cerrar
             setAuthView("signin");
             setRoleView("student");
+            // Limpiar widgets de Turnstile
+            Object.entries(turnstileWidgetIds.current).forEach(([key, widgetId]) => {
+              if (typeof widgetId === 'string' && window.turnstile) {
+                try {
+                  window.turnstile.remove(widgetId);
+                } catch (e) {
+                  // Ignorar errores
+                }
+              }
+            });
+            turnstileWidgetIds.current = {};
+            setTurnstileTokens({});
           }
         }}
       >
@@ -689,12 +823,8 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                     />
                   </div>
                   
-                  {/* --- WIDGET DE TURNSTILE (CORREGIDO) --- */}
-                  <div 
-                    className="cf-turnstile" 
-                    data-sitekey="0x4AAAAAACA1n_LS4lQdqDbV"
-                    data-theme="light"
-                  ></div>
+                  {/* --- WIDGET DE TURNSTILE --- */}
+                  <div ref={signinTurnstileRef}></div>
                   {/* ------------------------------------ */}
 
                   {error && (
@@ -803,12 +933,8 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                         </Select>
                       </div>
 
-                      {/* --- WIDGET DE TURNSTILE (CORREGIDO) --- */}
-                      <div 
-                        className="cf-turnstile" 
-                        data-sitekey="0x4AAAAAACA1n_LS4lQdqDbV"
-                        data-theme="light"
-                      ></div>
+                      {/* --- WIDGET DE TURNSTILE --- */}
+                      <div ref={signupStudentTurnstileRef}></div>
                       {/* ------------------------------------ */}
 
                       {error && (
@@ -939,12 +1065,8 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                         )}
                       </div>
                       
-                      {/* --- WIDGET DE TURNSTILE (CORREGIDO) --- */}
-                      <div 
-                        className="cf-turnstile" 
-                        data-sitekey="0x4AAAAAACA1n_LS4lQdqDbV"
-                        data-theme="light"
-                      ></div>
+                      {/* --- WIDGET DE TURNSTILE --- */}
+                      <div ref={signupTutorTurnstileRef}></div>
                       {/* ------------------------------------ */}
                       
                       {error && (
