@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { projectId, publicAnonKey } from './supabase/info';
 
@@ -19,8 +20,8 @@ interface AuthContextType {
   user: User | null;
   accessToken: string | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (data: any) => Promise<void>;
+  signIn: (email: string, password: string, turnstileToken: string) => Promise<void>; // Modificado
+  signUp: (data: any, turnstileToken: string) => Promise<any>; // Modificado
   signOut: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -46,14 +47,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string, turnstileToken: string) => { // Modificado
     const response = await fetch(`${API_URL}/auth/signin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${publicAnonKey}`
       },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email, password, turnstileToken }) // Modificado
     });
 
     if (!response.ok) {
@@ -69,14 +70,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('user', JSON.stringify(data.user));
   };
 
-  const signUp = async (signUpData: any) => {
+  const signUp = async (signUpData: any, turnstileToken: string) => { // Modificado
     const response = await fetch(`${API_URL}/auth/signup`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${publicAnonKey}`
       },
-      body: JSON.stringify(signUpData)
+      body: JSON.stringify({ ...signUpData, turnstileToken }) // Modificado
     });
 
     if (!response.ok) {
@@ -84,15 +85,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.error || 'Failed to sign up');
     }
 
-    const data = await response.json();
-    
-    // If tutor, don't auto-login (needs approval)
-    if (data.needsApproval) {
-      return;
-    }
-
-    // Auto sign in after signup for students
-    await signIn(signUpData.email, signUpData.password);
+    // Devuelve los datos para que LandingPage sepa qué hacer
+    return await response.json();
   };
 
   const signOut = () => {
