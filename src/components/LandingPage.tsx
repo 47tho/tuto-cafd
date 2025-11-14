@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import {
   BookOpen,
@@ -49,6 +50,17 @@ interface LandingPageProps {
   onLinkClick: (content: string) => void;
 }
 
+// --- AÑADIR ESTO ---
+// (Para que TypeScript reconozca el objeto `turnstile` global)
+declare global {
+  interface Window {
+    turnstile?: {
+      reset: (widgetId?: string) => void;
+    };
+  }
+}
+// --------------------
+
 export function LandingPage({ onLinkClick }: LandingPageProps) {
   const { signIn, signUp } = useAuth();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
@@ -76,11 +88,22 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
+    // --- AÑADIR ESTO ---
+    const turnstileToken = formData.get("cf-turnstile-response") as string;
+    // --------------------
+
     try {
-      await signIn(email, password);
+      // --- MODIFICAR ESTO ---
+      await signIn(email, password, turnstileToken);
+      // ----------------------
       setShowAuthDialog(false);
     } catch (err: any) {
       setError(err.message);
+      // --- AÑADIR ESTO ---
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+      // -------------------
     } finally {
       setLoading(false);
     }
@@ -103,6 +126,10 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       role,
     };
 
+    // --- AÑADIR ESTO ---
+    const turnstileToken = formData.get("cf-turnstile-response") as string;
+    // --------------------
+
     if (role === "student") {
       data.carrera =
         selectedCareer || (formData.get("carrera") as string);
@@ -112,17 +139,33 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     }
 
     try {
-      await signUp(data);
-      if (role === "tutor") {
+      // --- MODIFICAR ESTO ---
+      const result = await signUp(data, turnstileToken);
+      // ----------------------
+
+      if (result.needsApproval) {
         setSuccess(
           "Tu solicitud ha sido enviada. Un administrador la revisará pronto.",
         );
         setTimeout(() => setShowAuthDialog(false), 3000);
       } else {
-        setShowAuthDialog(false);
+        // --- MODIFICADO PARA ESTUDIANTES ---
+        setSuccess(
+          "¡Cuenta creada! Por favor, inicia sesión para continuar.",
+        );
+        setAuthView("signin"); // Cambia al tab de inicio de sesión
+        if (window.turnstile) {
+          window.turnstile.reset(); // Resetea el captcha en el tab de signin
+        }
+        // -----------------------------------
       }
     } catch (err: any) {
       setError(err.message);
+      // --- AÑADIR ESTO ---
+      if (window.turnstile) {
+        window.turnstile.reset();
+      }
+      // -------------------
     } finally {
       setLoading(false);
     }
@@ -647,6 +690,15 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                       placeholder="••••••••"
                     />
                   </div>
+                  
+                  {/* --- AÑADIR ESTO --- */}
+                  <div 
+                    className="cf-turnstile" 
+                    data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
+                    data-theme="light"
+                  ></div>
+                  {/* ------------------- */}
+
                   {error && (
                     <div className="text-destructive text-sm">
                       {error}
@@ -746,6 +798,15 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                           </SelectContent>
                         </Select>
                       </div>
+
+                      {/* --- AÑADIR ESTO --- */}
+                      <div 
+                        className="cf-turnstile" 
+                        data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
+                        data-theme="light"
+                      ></div>
+                      {/* ------------------- */}
+
                       {error && (
                         <div className="text-destructive text-sm">
                           {error}
@@ -873,6 +934,15 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                           </p>
                         )}
                       </div>
+                      
+                      {/* --- AÑADIR ESTO --- */}
+                      <div 
+                        className="cf-turnstile" 
+                        data-sitekey="0x4AAAAAAACAln_LS4lQdqDbV"
+                        data-theme="light"
+                      ></div>
+                      {/* ------------------- */}
+                      
                       {error && (
                         <div className="text-destructive text-sm">
                           {error}
