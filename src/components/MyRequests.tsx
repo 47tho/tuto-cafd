@@ -219,7 +219,7 @@ export function MyRequests({ onNavigate }: MyRequestsProps) {
     const isTutor = user?.role === "tutor";
     const canConfirm =
       request.status === "accepted" &&
-      isPast &&
+      //isPast &&
       ((isStudent && !request.confirmedByStudent) ||
         (isTutor && !request.confirmedByTutor));
 
