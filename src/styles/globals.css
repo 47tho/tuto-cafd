@@ -187,3 +187,28 @@
 html {
   font-size: var(--font-size);
 }
+
+/* Mejoras de hover para botones y elementos interactivos */
+@layer utilities {
+  .hover-lift {
+    transition: all 0.2s ease-in-out;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+  
+  .hover-lift:active {
+    transform: translateY(0);
+  }
+  
+  /* Efecto de brillo en hover para botones primarios */
+  button[data-slot="button"]:not(:disabled):hover {
+    cursor: pointer;
+  }
+  
+  button[data-slot="button"]:not(:disabled):active {
+    transition-duration: 0.1s;
+  }
+}
