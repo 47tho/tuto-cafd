@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import {
   BookOpen,
@@ -11,6 +10,8 @@ import {
   TrendingUp,
   BarChart,
   Wallet,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { Button } from "./ui/button";
 import {
@@ -37,6 +38,7 @@ import {
   SelectValue,
 } from "./ui/select";
 import { useAuth } from "../utils/auth-context";
+import { useTheme } from "../utils/theme-context";
 import { SUBJECTS, CAREERS } from "../utils/constants";
 import {
   Card,
@@ -55,7 +57,10 @@ declare global {
   interface Window {
     turnstile?: {
       reset: (widgetId?: string) => void;
-      render: (element: HTMLElement | string, options: any) => string;
+      render: (
+        element: HTMLElement | string,
+        options: any,
+      ) => string;
       remove: (widgetId: string) => void;
     };
   }
@@ -63,6 +68,7 @@ declare global {
 
 export function LandingPage({ onLinkClick }: LandingPageProps) {
   const { signIn, signUp } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [showAuthDialog, setShowAuthDialog] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -79,17 +85,29 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
 
   // Refs para los widgets de Turnstile
   const signinTurnstileRef = useRef<HTMLDivElement>(null);
-  const signupStudentTurnstileRef = useRef<HTMLDivElement>(null);
+  const signupStudentTurnstileRef =
+    useRef<HTMLDivElement>(null);
   const signupTutorTurnstileRef = useRef<HTMLDivElement>(null);
-  const turnstileWidgetIds = useRef<{ signin?: string; student?: string; tutor?: string }>({});
-  
+  const turnstileWidgetIds = useRef<{
+    signin?: string;
+    student?: string;
+    tutor?: string;
+  }>({});
+
   // Estados para los tokens de Turnstile
-  const [turnstileTokens, setTurnstileTokens] = useState<{ signin?: string; student?: string; tutor?: string }>({});
+  const [turnstileTokens, setTurnstileTokens] = useState<{
+    signin?: string;
+    student?: string;
+    tutor?: string;
+  }>({});
 
   // Función para renderizar el widget de Turnstile
-  const renderTurnstile = (element: HTMLElement | null, key: 'signin' | 'student' | 'tutor') => {
+  const renderTurnstile = (
+    element: HTMLElement | null,
+    key: "signin" | "student" | "tutor",
+  ) => {
     if (!element || !window.turnstile) return;
-    
+
     // Remover widget anterior si existe
     const existingWidgetId = turnstileWidgetIds.current[key];
     if (existingWidgetId) {
@@ -101,32 +119,53 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     }
 
     // Limpiar token anterior
-    setTurnstileTokens(prev => ({ ...prev, [key]: undefined }));
+    setTurnstileTokens((prev) => ({
+      ...prev,
+      [key]: undefined,
+    }));
 
     // Renderizar nuevo widget
     try {
       const widgetId = window.turnstile.render(element, {
-        sitekey: '0x4AAAAAACA1n_LS4lQdqDbV',
-        theme: 'light',
+        sitekey: "0x4AAAAAACA1n_LS4lQdqDbV",
+        theme: "light",
         callback: (token: string) => {
           // Token generado, guardarlo en el estado
-          setTurnstileTokens(prev => ({ ...prev, [key]: token }));
+          setTurnstileTokens((prev) => ({
+            ...prev,
+            [key]: token,
+          }));
         },
-        'error-callback': () => {
-          setError('Error en la verificación de seguridad. Por favor, intenta de nuevo.');
-          setTurnstileTokens(prev => ({ ...prev, [key]: undefined }));
+        "error-callback": () => {
+          setError(
+            "Error en la verificación de seguridad. Por favor, intenta de nuevo.",
+          );
+          setTurnstileTokens((prev) => ({
+            ...prev,
+            [key]: undefined,
+          }));
         },
-        'expired-callback': () => {
-          setError('La verificación de seguridad ha expirado. Por favor, intenta de nuevo.');
-          setTurnstileTokens(prev => ({ ...prev, [key]: undefined }));
-          if (window.turnstile && turnstileWidgetIds.current[key]) {
-            window.turnstile.reset(turnstileWidgetIds.current[key]!);
+        "expired-callback": () => {
+          setError(
+            "La verificación de seguridad ha expirado. Por favor, intenta de nuevo.",
+          );
+          setTurnstileTokens((prev) => ({
+            ...prev,
+            [key]: undefined,
+          }));
+          if (
+            window.turnstile &&
+            turnstileWidgetIds.current[key]
+          ) {
+            window.turnstile.reset(
+              turnstileWidgetIds.current[key]!,
+            );
           }
         },
       });
       turnstileWidgetIds.current[key] = widgetId;
     } catch (e) {
-      console.error('Error rendering Turnstile:', e);
+      console.error("Error rendering Turnstile:", e);
     }
   };
 
@@ -141,39 +180,66 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     // Función para verificar y renderizar Turnstile
     const checkAndRenderTurnstile = () => {
       attemptCount++;
-      
+
       if (!window.turnstile) {
         if (attemptCount < maxAttempts) {
           // Si Turnstile no está cargado, esperar un poco más
-          const timeout = setTimeout(checkAndRenderTurnstile, 100);
+          const timeout = setTimeout(
+            checkAndRenderTurnstile,
+            100,
+          );
           timeouts.push(timeout);
         } else {
-          console.error('Turnstile script no se cargó después de varios intentos');
-          setError('Error al cargar la verificación de seguridad. Por favor, recarga la página.');
+          console.error(
+            "Turnstile script no se cargó después de varios intentos",
+          );
+          setError(
+            "Error al cargar la verificación de seguridad. Por favor, recarga la página.",
+          );
         }
         return;
       }
 
       // Esperar a que el DOM esté listo
       const renderTimeout = setTimeout(() => {
-        if (authView === 'signin' && signinTurnstileRef.current) {
-          renderTurnstile(signinTurnstileRef.current, 'signin');
-        } else if (authView === 'signup' && roleView === 'student' && signupStudentTurnstileRef.current) {
-          renderTurnstile(signupStudentTurnstileRef.current, 'student');
-        } else if (authView === 'signup' && roleView === 'tutor' && signupTutorTurnstileRef.current) {
-          renderTurnstile(signupTutorTurnstileRef.current, 'tutor');
+        if (
+          authView === "signin" &&
+          signinTurnstileRef.current
+        ) {
+          renderTurnstile(signinTurnstileRef.current, "signin");
+        } else if (
+          authView === "signup" &&
+          roleView === "student" &&
+          signupStudentTurnstileRef.current
+        ) {
+          renderTurnstile(
+            signupStudentTurnstileRef.current,
+            "student",
+          );
+        } else if (
+          authView === "signup" &&
+          roleView === "tutor" &&
+          signupTutorTurnstileRef.current
+        ) {
+          renderTurnstile(
+            signupTutorTurnstileRef.current,
+            "tutor",
+          );
         }
       }, 100);
       timeouts.push(renderTimeout);
     };
 
     // Iniciar verificación
-    const initialTimeout = setTimeout(checkAndRenderTurnstile, 100);
+    const initialTimeout = setTimeout(
+      checkAndRenderTurnstile,
+      100,
+    );
     timeouts.push(initialTimeout);
 
     return () => {
       // Limpiar todos los timeouts
-      timeouts.forEach(timeout => clearTimeout(timeout));
+      timeouts.forEach((timeout) => clearTimeout(timeout));
     };
   }, [showAuthDialog, authView, roleView]);
 
@@ -191,11 +257,18 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     // Verificar token de Turnstile
     const turnstileToken = turnstileTokens.signin;
     if (!turnstileToken) {
-      setError("Por favor, completa la verificación de seguridad.");
+      setError(
+        "Por favor, completa la verificación de seguridad.",
+      );
       setLoading(false);
       // Reiniciar el widget
-      if (window.turnstile && turnstileWidgetIds.current.signin) {
-        window.turnstile.reset(turnstileWidgetIds.current.signin);
+      if (
+        window.turnstile &&
+        turnstileWidgetIds.current.signin
+      ) {
+        window.turnstile.reset(
+          turnstileWidgetIds.current.signin,
+        );
       }
       return;
     }
@@ -204,13 +277,24 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       await signIn(email, password, turnstileToken);
       setShowAuthDialog(false);
       // Limpiar token después de éxito
-      setTurnstileTokens(prev => ({ ...prev, signin: undefined }));
+      setTurnstileTokens((prev) => ({
+        ...prev,
+        signin: undefined,
+      }));
     } catch (err: any) {
       setError(err.message);
       // Limpiar token y reiniciar el widget en caso de error
-      setTurnstileTokens(prev => ({ ...prev, signin: undefined }));
-      if (window.turnstile && turnstileWidgetIds.current.signin) {
-        window.turnstile.reset(turnstileWidgetIds.current.signin);
+      setTurnstileTokens((prev) => ({
+        ...prev,
+        signin: undefined,
+      }));
+      if (
+        window.turnstile &&
+        turnstileWidgetIds.current.signin
+      ) {
+        window.turnstile.reset(
+          turnstileWidgetIds.current.signin,
+        );
       }
     } finally {
       setLoading(false);
@@ -235,14 +319,21 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
     };
 
     // Verificar token de Turnstile
-    const widgetKey = role === 'student' ? 'student' : 'tutor';
+    const widgetKey = role === "student" ? "student" : "tutor";
     const turnstileToken = turnstileTokens[widgetKey];
     if (!turnstileToken) {
-      setError("Por favor, completa la verificación de seguridad.");
+      setError(
+        "Por favor, completa la verificación de seguridad.",
+      );
       setLoading(false);
       // Reiniciar el widget correspondiente
-      if (window.turnstile && turnstileWidgetIds.current[widgetKey]) {
-        window.turnstile.reset(turnstileWidgetIds.current[widgetKey]!);
+      if (
+        window.turnstile &&
+        turnstileWidgetIds.current[widgetKey]
+      ) {
+        window.turnstile.reset(
+          turnstileWidgetIds.current[widgetKey]!,
+        );
       }
       return;
     }
@@ -263,28 +354,45 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
           "Tu solicitud ha sido enviada. Un administrador la revisará pronto.",
         );
         // Limpiar token después de éxito
-        setTurnstileTokens(prev => ({ ...prev, [widgetKey]: undefined }));
+        setTurnstileTokens((prev) => ({
+          ...prev,
+          [widgetKey]: undefined,
+        }));
         setTimeout(() => setShowAuthDialog(false), 3000);
       } else {
         setSuccess(
           "¡Cuenta creada! Por favor, inicia sesión para continuar.",
         );
         // Limpiar token
-        setTurnstileTokens(prev => ({ ...prev, [widgetKey]: undefined }));
+        setTurnstileTokens((prev) => ({
+          ...prev,
+          [widgetKey]: undefined,
+        }));
         setAuthView("signin"); // Cambia al tab de inicio de sesión
         // Reiniciar el widget de signin
         setTimeout(() => {
           if (signinTurnstileRef.current) {
-            renderTurnstile(signinTurnstileRef.current, 'signin');
+            renderTurnstile(
+              signinTurnstileRef.current,
+              "signin",
+            );
           }
         }, 100);
       }
     } catch (err: any) {
       setError(err.message);
       // Limpiar token y reiniciar el widget correspondiente en caso de error
-      setTurnstileTokens(prev => ({ ...prev, [widgetKey]: undefined }));
-      if (window.turnstile && turnstileWidgetIds.current[widgetKey]) {
-        window.turnstile.reset(turnstileWidgetIds.current[widgetKey]!);
+      setTurnstileTokens((prev) => ({
+        ...prev,
+        [widgetKey]: undefined,
+      }));
+      if (
+        window.turnstile &&
+        turnstileWidgetIds.current[widgetKey]
+      ) {
+        window.turnstile.reset(
+          turnstileWidgetIds.current[widgetKey]!,
+        );
       }
     } finally {
       setLoading(false);
@@ -304,7 +412,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <header className="border-b bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
@@ -313,7 +421,23 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                 TUTO-CAFD
               </span>
             </div>
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleTheme}
+                title={
+                  theme === "dark"
+                    ? "Cambiar a modo claro"
+                    : "Cambiar a modo oscuro"
+                }
+              >
+                {theme === "dark" ? (
+                  <Sun className="h-5 w-5" />
+                ) : (
+                  <Moon className="h-5 w-5" />
+                )}
+              </Button>
               <Button
                 variant="ghost"
                 onClick={() => openModal("signin")}
@@ -329,14 +453,14 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       </header>
 
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-blue-50 to-white">
+      <section className="py-20 px-4 bg-gradient-to-b from-primary/10 via-background to-background dark:from-primary/5">
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl mb-6 text-foreground">
             Conecta con el conocimiento.
             <br />
             Encuentra tu tutor ideal.
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
             TUTO-CAFD te ayuda a encontrar tutores
             universitarios expertos para tus materias más
             desafiantes. Aprende de los mejores, a tu ritmo.
@@ -387,7 +511,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       </section>
 
       {/* Features Section (For Students) */}
-      <section className="py-16 px-4 bg-white">
+      <section className="py-16 px-4 bg-background">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <span className="text-primary font-semibold">
@@ -513,7 +637,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       </section>
 
       {/* Features Section (For Tutors) */}
-      <section className="py-16 px-4 bg-blue-50">
+      <section className="py-16 px-4 bg-secondary/30 dark:bg-secondary/20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center">
             <span className="text-primary font-semibold">
@@ -608,7 +732,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-20 px-4 bg-background">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-semibold text-center mb-12">
             Opiniones Reales, Resultados Reales
@@ -681,7 +805,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
           <div className="text-center mt-8">
             <p className="text-muted-foreground">
               Calificación promedio:{" "}
-              <span className="font-semibold text-gray-800">
+              <span className="font-semibold text-foreground">
                 4.8/5
               </span>{" "}
               de 200+ reseñas
@@ -691,8 +815,8 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-100 py-8 px-4">
-        <div className="max-w-7xl mx-auto text-center text-gray-600">
+      <footer className="bg-muted/50 py-8 px-4 border-t">
+        <div className="max-w-7xl mx-auto text-center text-muted-foreground">
           <div className="flex justify-center gap-6 mb-4">
             <button
               onClick={() => onLinkClick("about")}
@@ -740,15 +864,20 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
             setAuthView("signin");
             setRoleView("student");
             // Limpiar widgets de Turnstile
-            Object.entries(turnstileWidgetIds.current).forEach(([key, widgetId]) => {
-              if (typeof widgetId === 'string' && window.turnstile) {
-                try {
-                  window.turnstile.remove(widgetId);
-                } catch (e) {
-                  // Ignorar errores
+            Object.entries(turnstileWidgetIds.current).forEach(
+              ([key, widgetId]) => {
+                if (
+                  typeof widgetId === "string" &&
+                  window.turnstile
+                ) {
+                  try {
+                    window.turnstile.remove(widgetId);
+                  } catch (e) {
+                    // Ignorar errores
+                  }
                 }
-              }
-            });
+              },
+            );
             turnstileWidgetIds.current = {};
             setTurnstileTokens({});
           }
@@ -822,7 +951,7 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                       placeholder="••••••••"
                     />
                   </div>
-                  
+
                   {/* --- WIDGET DE TURNSTILE --- */}
                   <div ref={signinTurnstileRef}></div>
                   {/* ------------------------------------ */}
@@ -934,7 +1063,9 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                       </div>
 
                       {/* --- WIDGET DE TURNSTILE --- */}
-                      <div ref={signupStudentTurnstileRef}></div>
+                      <div
+                        ref={signupStudentTurnstileRef}
+                      ></div>
                       {/* ------------------------------------ */}
 
                       {error && (
@@ -1064,11 +1195,11 @@ export function LandingPage({ onLinkClick }: LandingPageProps) {
                           </p>
                         )}
                       </div>
-                      
+
                       {/* --- WIDGET DE TURNSTILE --- */}
                       <div ref={signupTutorTurnstileRef}></div>
                       {/* ------------------------------------ */}
-                      
+
                       {error && (
                         <div className="text-destructive text-sm">
                           {error}

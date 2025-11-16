@@ -7,8 +7,11 @@ import {
   BookOpen,
   Settings,
   ChevronDown,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useAuth } from "../utils/auth-context";
+import { useTheme } from "../utils/theme-context";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -32,12 +35,13 @@ export function Navbar({
   notificationCount = 0,
 }: NavbarProps) {
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   if (!user) return null;
 
   return (
-    <nav className="border-b bg-white sticky top-0 z-50 shadow-sm">
+    <nav className="border-b bg-card sticky top-0 z-50 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -143,6 +147,20 @@ export function Navbar({
 
           {/* Right Side */}
           <div className="flex items-center gap-3">
+            {/* Theme Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            >
+              {theme === "dark" ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+
             {/* Notifications */}
             <Button
               variant="ghost"
