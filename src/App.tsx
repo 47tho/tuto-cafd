@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { AuthProvider, useAuth } from "./utils/auth-context";
+import { ThemeProvider } from "./utils/theme-context";
 import { apiRequest } from "./utils/api";
 import { LandingPage } from "./components/LandingPage";
 import { Navbar } from "./components/Navbar";
@@ -244,38 +245,44 @@ function AppContent() {
   useEffect(() => {
     if (user && !authLoading) {
       const path = window.location.pathname;
-      const viewFromPath = path !== '/' && path !== '' 
-        ? path.substring(1).split('/')[0] 
-        : 'dashboard';
-      
-      const params = new URLSearchParams(window.location.search);
+      const viewFromPath =
+        path !== "/" && path !== ""
+          ? path.substring(1).split("/")[0]
+          : "dashboard";
+
+      const params = new URLSearchParams(
+        window.location.search,
+      );
       const data: any = {};
-      
+
       // Parse URL parameters
-      if (params.has('tutorId')) {
-        data.tutorId = params.get('tutorId');
+      if (params.has("tutorId")) {
+        data.tutorId = params.get("tutorId");
       }
-      if (params.has('userId')) {
-        data.userId = params.get('userId');
+      if (params.has("userId")) {
+        data.userId = params.get("userId");
       }
-      if (params.has('userRole')) {
-        data.userRole = params.get('userRole');
+      if (params.has("userRole")) {
+        data.userRole = params.get("userRole");
       }
-      if (params.has('query')) {
-        data.query = params.get('query');
+      if (params.has("query")) {
+        data.query = params.get("query");
       }
-      
+
       setCurrentView(viewFromPath);
       if (Object.keys(data).length > 0) {
         setViewData(data);
       }
-      
+
       // Initialize browser history state if not already set
       if (!window.history.state || !window.history.state.view) {
         window.history.replaceState(
-          { view: viewFromPath, data: Object.keys(data).length > 0 ? data : null },
-          '',
-          window.location.pathname + window.location.search
+          {
+            view: viewFromPath,
+            data: Object.keys(data).length > 0 ? data : null,
+          },
+          "",
+          window.location.pathname + window.location.search,
         );
       }
     }
@@ -292,26 +299,34 @@ function AppContent() {
       } else {
         // If no state, parse from URL
         const path = window.location.pathname;
-        const viewFromPath = path !== '/' && path !== '' 
-          ? path.substring(1).split('/')[0] 
-          : 'dashboard';
-        
-        const params = new URLSearchParams(window.location.search);
+        const viewFromPath =
+          path !== "/" && path !== ""
+            ? path.substring(1).split("/")[0]
+            : "dashboard";
+
+        const params = new URLSearchParams(
+          window.location.search,
+        );
         const data: any = {};
-        
-        if (params.has('tutorId')) data.tutorId = params.get('tutorId');
-        if (params.has('userId')) data.userId = params.get('userId');
-        if (params.has('userRole')) data.userRole = params.get('userRole');
-        if (params.has('query')) data.query = params.get('query');
-        
+
+        if (params.has("tutorId"))
+          data.tutorId = params.get("tutorId");
+        if (params.has("userId"))
+          data.userId = params.get("userId");
+        if (params.has("userRole"))
+          data.userRole = params.get("userRole");
+        if (params.has("query"))
+          data.query = params.get("query");
+
         setCurrentView(viewFromPath);
         setViewData(Object.keys(data).length > 0 ? data : null);
         window.scrollTo(0, 0);
       }
     };
 
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () =>
+      window.removeEventListener("popstate", handlePopState);
   }, []);
 
   useEffect(() => {
@@ -350,21 +365,17 @@ function AppContent() {
     // Update URL and browser history
     const params = new URLSearchParams();
     if (data) {
-      if (data.tutorId) params.set('tutorId', data.tutorId);
-      if (data.userId) params.set('userId', data.userId);
-      if (data.userRole) params.set('userRole', data.userRole);
-      if (data.query) params.set('query', data.query);
+      if (data.tutorId) params.set("tutorId", data.tutorId);
+      if (data.userId) params.set("userId", data.userId);
+      if (data.userRole) params.set("userRole", data.userRole);
+      if (data.query) params.set("query", data.query);
     }
 
     const queryString = params.toString();
-    const newPath = `/${view}${queryString ? `?${queryString}` : ''}`;
-    
+    const newPath = `/${view}${queryString ? `?${queryString}` : ""}`;
+
     // Update browser history
-    window.history.pushState(
-      { view, data },
-      '',
-      newPath
-    );
+    window.history.pushState({ view, data }, "", newPath);
   };
 
   // Show loading state
@@ -393,10 +404,7 @@ function AppContent() {
   }
 
   // Check if tutor is not approved yet
-  if (
-    user.role === "tutor" &&
-    !user.approved
-  ) {
+  if (user.role === "tutor" && !user.approved) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar
@@ -634,13 +642,15 @@ function InfoModal({
 // Main App wrapper with AuthProvider
 export default function App() {
   return (
-    <AuthProvider
-      children={
-        <>
-          <AppContent />
-          <Toaster />
-        </>
-      }
-    />
+    <ThemeProvider>
+      <AuthProvider
+        children={
+          <>
+            <AppContent />
+            <Toaster />
+          </>
+        }
+      />
+    </ThemeProvider>
   );
 }
