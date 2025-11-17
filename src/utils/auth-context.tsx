@@ -94,6 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAccessToken(null);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('user');
+    const baseUrl = window.location.origin;
+    window.location.href = baseUrl;
   };
 
   const refreshUser = async () => {
